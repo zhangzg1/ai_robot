@@ -13,7 +13,7 @@
 
 1. **克隆项目**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/zhangzg1/ai_robot.git
    cd ai_robot
    ```
 
@@ -36,7 +36,7 @@
 - `npm run build` - 构建生产版本
 - `npm run preview` - 预览生产版本
 
-## 🖼️ 页面展示
+## 🖼️ 效果展示
 
 ### 主界面
 ![主界面](images/main-interface.png)
