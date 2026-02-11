@@ -36,6 +36,17 @@
 - `npm run build` - 构建生产版本
 - `npm run preview` - 预览生产版本
 
+## 🖼️ 页面展示
+
+### 主界面
+![主界面](images/main-interface.png)
+
+### 模型设置
+![模型设置](images/model-settings.png)
+
+### 聊天对话与会话管理
+![聊天对话](images/chat-demo.png)
+
 ## 🛠 技术栈
 
 - **前端框架**: React 19
@@ -67,20 +78,6 @@ images/                     # 页面展示图片
 ├── settings-dialog.png    # 模型设置对话框
 └── conversation-management.png # 会话管理功能
 ```
-
-## 🖼️ 页面展示
-
-### 主界面
-![主界面](images/main-interface.png)
-
-### 聊天对话演示
-![聊天对话](images/chat-demo.png)
-
-### 模型设置
-![模型设置](images/settings-dialog.png)
-
-### 会话管理
-![会话管理](images/conversation-management.png)
 
 ## 🎨 功能特性
 

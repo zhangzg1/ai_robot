@@ -339,6 +339,7 @@ const ChatInterface: React.FC = () => {
     apiKey: ''
   });
   const [showModelSettings, setShowModelSettings] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -463,6 +464,15 @@ const ChatInterface: React.FC = () => {
     setConversations(prev => prev.map(conv => 
       conv.id === conversationId ? { ...conv, title: newTitle } : conv
     ));
+  };
+
+  // 处理AI回答内容，去除多余空行
+  const processAIContent = (content: string) => {
+    if (!content) return '';
+    return content
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/^\s*\n+|\n+\s*$/g, '')
+      .trim();
   };
 
   // 显示修改对话框
@@ -703,7 +713,7 @@ const ChatInterface: React.FC = () => {
   return (
     <div className="flex h-screen bg-white">
       {/* 左侧边栏 */}
-      <div className="w-56 bg-gray-50 border-r border-gray-100 flex flex-col">
+      <div className={`${isFullscreen ? 'hidden' : 'w-56'} bg-gray-50 border-r border-gray-100 flex flex-col transition-all duration-300`}>
         {/* Logo区域 */}
         <div className="p-4">
           <div className="flex items-center space-x-2">
@@ -907,10 +917,24 @@ const ChatInterface: React.FC = () => {
       </div>
 
       {/* 右侧聊天区域 */}
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex flex-col ${isFullscreen ? 'max-w-4xl mx-auto' : ''} transition-all duration-300`}>
         {/* 头部 - 只在有对话时显示 */}
         {currentConversationId && (
           <div className="relative px-6 py-3 border-b border-gray-100 bg-white">
+            {/* 全屏切换按钮 */}
+            <button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title={isFullscreen ? "退出全屏" : "全屏模式"}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {isFullscreen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                )}
+              </svg>
+            </button>
             <div className="flex items-center justify-center">
               <div className="text-center">
                 <h1 
@@ -1039,48 +1063,66 @@ const ChatInterface: React.FC = () => {
 
                 {/* AI消息 - 左边 */}
                 {message.role === 'assistant' && (
-                  <div className="max-w-lg group">
-                    <div className="text-gray-800 text-sm whitespace-pre-wrap break-words leading-relaxed">
+                  <div className="w-full group">
+                    <div className="text-gray-800 text-sm break-words leading-relaxed">
                       <ReactMarkdown
                         components={{
+                          // 段落：mb-3 提供适中的阅读间距
+                          p: ({children}) => <p className="mb-3 last:mb-0 leading-relaxed text-sm">{children}</p>,
+                          
+                          // 无序列表：改用 list-outside 配合 ml-6 解决对齐问题
+                          ul: ({children}) => <ul className="list-disc list-outside ml-6 mb-4 space-y-2">{children}</ul>,
+                          
+                          // 有序列表：同理，解决 1. 2. 3. 换行的问题
+                          ol: ({children}) => <ol className="list-decimal list-outside ml-6 mb-4 space-y-2">{children}</ol>,
+                          
+                          li: ({children}) => (
+                            <li className="leading-relaxed mb-1 last:mb-0">
+                              {/* 技巧：如果 li 内部有 p，强制让 p 变成 inline，
+                                 这样即使是松散列表，序号和文字也会在同一行。*/}
+                              <div className="[&>p]:inline">{children}</div>
+                            </li>
+                          ),
+                          
                           code({ node, className, children, ...props }: any) {
                             const match = /language-(\w+)/.exec(className || '');
                             const isInline = !className?.includes('language-');
                             const language = match ? match[1] : '';
                             
                             return !isInline && match ? (
-                              <div className="relative">
+                              <div className="relative my-4 group"> {/* 增加上下间距 */}
+                                {/* 语言标签：建议放在右侧，避免遮挡代码左侧的缩进 */}
+                                <div className="absolute right-3 top-3 text-[10px] font-mono uppercase tracking-wider text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {language}
+                                </div>
                                 <SyntaxHighlighter
                                   style={tomorrow as any}
                                   language={language}
                                   PreTag="div"
                                   customStyle={{
                                     margin: 0,
-                                    borderRadius: '0.5rem',
+                                    padding: '1.25rem', // 增加内边距
+                                    borderRadius: '0.75rem',
                                     fontSize: '0.875rem',
-                                    backgroundColor: '#f8f9fa',
+                                    lineHeight: '1.5',
+                                    backgroundColor: '#f9fafb', // 更浅的背景色
                                   }}
                                   {...props}
                                 >
                                   {String(children).replace(/\n$/, '')}
                                 </SyntaxHighlighter>
-                                <div className="absolute top-2 left-2 text-xs text-gray-500 bg-white px-2 py-1 rounded-md shadow-sm">
-                                  {language}
-                                </div>
                               </div>
                             ) : (
-                              <code className="bg-gray-100 px-2 py-1 rounded-md text-sm" {...props}>
+                              <code className="bg-gray-100 px-1.5 py-0.5 rounded text-red-500 font-mono text-[0.85em]" {...props}>
                                 {children}
                               </code>
                             );
                           },
-                          p: ({children}) => <p className="text-sm mb-2 last:mb-0 leading-relaxed">{children}</p>,
-                          ul: ({children}) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-                          ol: ({children}) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-                          li: ({children}) => <li className="leading-relaxed">{children}</li>,
+                          // 处理横线问题
+                          hr: () => <hr className="my-6 border-gray-100" />,
                         }}
                       >
-                        {message.content || (isLoading && index === messages.length - 1 && message.role === 'assistant' && !message.content ? '正在思考中...' : '')}
+                        {processAIContent(message.content) || (isLoading && index === messages.length - 1 && message.role === 'assistant' && !message.content ? '正在思考中...' : '')}
                       </ReactMarkdown>
                     </div>
                     <div className="flex items-center justify-between mt-1">
